@@ -1,0 +1,53 @@
+# ============================================================
+# Koçluk RAG Chatbot — Bağımlılık Listesi
+# Python 3.13 + venv (.venv) için test edilmiş, sabit sürümler.
+#
+# KURULUM SIRASI (temiz venv):
+#   1. python -m venv .venv
+#   2. .\.venv\Scripts\Activate.ps1
+#   3. pip install torch --index-url https://download.pytorch.org/whl/cpu
+#   4. pip install -r requirements.txt
+#
+# NOT: Bu dosya "pip install -r requirements.txt" ile her zaman
+#      güvenle çalıştırılabilir — kaynak derleme tetiklenmez.
+# ============================================================
+
+# --- Temel araç gereç (önce bunlar) ---
+numpy>=2.0.0,<3.0.0          # 2.4.5 kurulu; 1.x derleme gerektirir
+python-dotenv>=1.0.0
+tqdm>=4.66.0
+
+# --- LangChain ekosistemi (0.3.x — kararlı, birbiriyle uyumlu) ---
+langchain>=0.3.0,<0.4.0
+langchain-core>=0.3.0,<0.4.0
+langchain-community>=0.3.0,<0.4.0
+
+# --- LLM sağlayıcıları (5 Katmanlı Şelale) ---
+langchain-groq>=0.2.0,<0.3.0
+langchain-google-genai>=2.0.0,<3.0.0
+langchain-openai>=0.2.0,<0.4.0        # OpenRouter (ChatOpenAI + base_url)
+langchain-cohere>=0.3.0,<0.5.0         # Cohere command-r
+langchain-huggingface>=0.1.0,<0.2.0    # HuggingFace Zephyr (son çare)
+
+# --- HuggingFace alt bağımlılıkları (transformers 5.x numpy çakışmasını önle) ---
+transformers>=4.39.0,<5.0.0   # 5.x → tokenizers 0.23 → numpy 1.x derleme!
+tokenizers>=0.13.0,<0.23.0    # 0.22.2 kurulu; 0.23+ transformers 5.x gerektirir
+huggingface_hub>=0.23.0,<2.0.0
+sentence-transformers>=2.7.0,<4.0.0
+
+# --- Vektör mağazası ---
+# chromadb ve langchain-chroma install.ps1 ile AYRI adımda kurulur.
+# Sebep: langchain-chroma 0.1.4 metadata'sında chromadb<0.6 yazıyor,
+#   pip resolver reddediyor. Ama runtime'da chromadb 1.x mükemmel çalışıyor.
+#   install.ps1 bunu --no-deps + --only-binary ile aşıyor.
+#   Direkt bu dosyayı kullanıyorsanız:
+#     pip install "chromadb>=1.0.0" --only-binary :all:
+#     pip install "langchain-chroma==0.1.4" --no-deps
+
+# --- Kullanıcı arayüzü (Streamlit — isteğe bağlı, sadece app.py için) ---
+streamlit>=1.35.0,<2.0.0
+
+# --- REST API backend (api.py için) ---
+fastapi>=0.111.0,<0.116.0
+uvicorn[standard]>=0.30.0,<0.35.0   # ASGI sunucusu (Render deploy için)
+python-multipart>=0.0.9              # FastAPI form/file desteği
