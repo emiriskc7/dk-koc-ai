@@ -77,9 +77,6 @@ app = FastAPI(
     },
 )
 
-# ─────────────────────────────────────────────────────────────────────────────
-# CORS 
-# ─────────────────────────────────────────────────────────────────────────────
 _allowed_origins = os.getenv("ALLOWED_ORIGINS", "*").split(",")
 
 app.add_middleware(
@@ -90,9 +87,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ─────────────────────────────────────────────────────────────────────────────
-# PYDANTIC MODELLER
-# ─────────────────────────────────────────────────────────────────────────────
 
 class ChatRequest(BaseModel):
     """Sohbet isteği şeması."""
@@ -137,8 +131,6 @@ class HealthResponse(BaseModel):
     chain_ready: bool = Field(..., description="RAG zinciri hazır mı?")
 
 
-
-
 def _resolve_session_id(session_id: Optional[str]) -> str:
     """
     Gelen session_id geçerliyse olduğu gibi döner;
@@ -162,11 +154,9 @@ async def _token_generator(query: str, session_id: str) -> AsyncGenerator[str, N
 
     try:
         while True:
-            # Senkron __next__ çağrısını executor üzerinde çalıştır
             token = await loop.run_in_executor(None, next, gen, None)
             if token is None:
                 break
-            # SSE formatı: data satırı + çift newline
             yield f"data: {token}\n\n"
     except StopIteration:
         pass
@@ -175,8 +165,6 @@ async def _token_generator(query: str, session_id: str) -> AsyncGenerator[str, N
         yield f"data: [ERROR] Yanıt üretilirken bir hata oluştu.\n\n"
     finally:
         yield "data: [DONE]\n\n"
-
-
 
 
 @app.on_event("startup")
@@ -193,10 +181,6 @@ async def _startup_event():
     except Exception as exc:
         logger.critical("Zincir başlatma hatası: %s", exc)
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# ENDPOINTLER
-# ─────────────────────────────────────────────────────────────────────────────
 
 @app.get(
     "/health",
@@ -244,7 +228,6 @@ async def chat(request: ChatRequest):
     try:
         loop = asyncio.get_event_loop()
 
-        # Tüm token'ları birleştir
         full_answer_parts: list[str] = []
 
         def _collect() -> str:
@@ -323,8 +306,8 @@ async def chat_stream(request: ChatRequest):
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
-            "X-Accel-Buffering": "no",        # Nginx proxy buffer'ı devre dışı
-            "X-Session-Id": session_id,        # İstemci bu değeri saklayabilir
+            "X-Accel-Buffering": "no",
+            "X-Session-Id": session_id,
         },
     )
 

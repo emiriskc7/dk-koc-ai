@@ -12,13 +12,9 @@ Dışa aktarılanlar:
 
 from __future__ import annotations
 
-# ─────────────────────────────────────────────────────────────
-# 50 ÜSTÜN-DÜZEY YKS KOÇLUK SENARYOSU
-# ─────────────────────────────────────────────────────────────
 
 ALL_QUESTIONS: dict[str, list[str]] = {
 
-    # ── MOTİVASYON & PSİKOLOJİ ───────────────────────────────
     "Motivasyon & Psikoloji": [
         "Öğrencim 3 aydır çalışmasına rağmen net artmıyor ve 'Boşuna çabalıyorum' diyor. "
         "Tükenmişlik sendromunu nasıl kırarım?",
@@ -42,7 +38,6 @@ ALL_QUESTIONS: dict[str, list[str]] = {
         "diyor. Meslek rehberliğini koçluk seansına nasıl entegre ederim?",
     ],
 
-    # ── TYT STRATEJİSİ & KAYNAK ───────────────────────────────
     "TYT Strateji & Kaynak": [
         "TYT'de Türkçe'de dil bilgisi tam ama paragrafta süre kaybediyor. "
         "Hız + doğruluk dengesini kurmak için hangi taktiği önerirsiniz?",
@@ -66,7 +61,6 @@ ALL_QUESTIONS: dict[str, list[str]] = {
         "Bu dengesizliğin kök nedeni nasıl tespit edilir?",
     ],
 
-    # ── AYT STRATEJİSİ & KAYNAK ───────────────────────────────
     "AYT Strateji & Kaynak": [
         "AYT Fen netleri 25'te takılı kaldı; Fizik yapamıyor ama Biyoloji güçlü. "
         "Ağırlıklı puana göre bir yönlendirme planı nasıl çizmeliyim?",
@@ -90,7 +84,6 @@ ALL_QUESTIONS: dict[str, list[str]] = {
         "Soru kurma becerisini geliştirmek için nasıl bir antrenman yapmalıyız?",
     ],
 
-    # ── DENEME ANALİZİ & HATA YÖNETİMİ ──────────────────────
     "Deneme Analizi & Hata Yönetimi": [
         "Öğrencim deneme analizini çok yüzeysel yapıyor; sadece kaç net yaptığına "
         "bakıp geçiyor. Derin hata analizi için ne önerirsiniz?",
@@ -111,7 +104,6 @@ ALL_QUESTIONS: dict[str, list[str]] = {
         "yiyor. Risk analizi ve puan stratejisi nasıl öğretilir?",
     ],
 
-    # ── PROGRAM & ZAMAN YÖNETİMİ ─────────────────────────────
     "Program & Zaman Yönetimi": [
         "Öğrencimin TYT'ye 5 ayı var ve her ders zayıf; sıfırdan başlıyor. "
         "Makul net hedefleriyle haftalık program nasıl tasarlanır?",
@@ -129,7 +121,6 @@ ALL_QUESTIONS: dict[str, list[str]] = {
         "ile soru çözüm dengesini nasıl kurmalıyım?",
     ],
 
-    # ── VELİ & AİLE İLETİŞİMİ ────────────────────────────────
     "Veli & Aile İletişimi": [
         "Öğrencinin ailesi zorla Tıp istiyor ama öğrenci Mühendisliğe yatkın "
         "ve baskıdan bunalmış. Veli görüşmesini nasıl yönetmeliyim?",
@@ -147,7 +138,6 @@ ALL_QUESTIONS: dict[str, list[str]] = {
         "Bu çelişen baskıyı öğrenciden nasıl uzaklaştırabilirim?",
     ],
 
-    # ── KRİZ SENARYOLARI ──────────────────────────────────────
     "Kriz Senaryoları": [
         "Öğrencim sınava 3 gün kala 'Hiçbir şey bilmiyorum, girmeyeyim' dedi. "
         "Bu krizi son dakikada nasıl yönetirim?",
@@ -165,7 +155,6 @@ ALL_QUESTIONS: dict[str, list[str]] = {
         "sınav günü hazırlığı için pratik önerileriniz nelerdir?",
     ],
 
-    # ── BRANŞ-SPESİFİK TAKTİKLER ──────────────────────────────
     "Branş-Spesifik Taktikler": [
         "Geometride Üçgenler bitmiş ama Dörtgenler çok zayıf. "
         "Dörtgenler konusunda maksimum verim için kaynak ve sıra önerisi nedir?",
@@ -187,14 +176,9 @@ ALL_QUESTIONS: dict[str, list[str]] = {
     ],
 }
 
-# ─────────────────────────────────────────────────────────────
-# YARDIMCI LİSTELER
-# ─────────────────────────────────────────────────────────────
 
-# Tüm soruların düz listesi (random.sample için kullanılır)
 FLAT_LIST: list[str] = [q for questions in ALL_QUESTIONS.values() for q in questions]
 
-# Hoş-geldin kartında gösterilecek temsili 6 soru
 SAMPLE_QUESTIONS: list[str] = [
     "TYT'de 60 net bandına takıldı, 4 aydır geçemiyor. Ne yapmalıyım?",
     "AYT Fen netleri 25'te takılı; Fizik yapamıyor ama Biyoloji güçlü.",

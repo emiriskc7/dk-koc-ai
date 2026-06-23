@@ -43,10 +43,6 @@ from src.retriever import get_retriever
 logger = logging.getLogger(__name__)
 
 
-# ─────────────────────────────────────────────────────────────
-# JSON DOĞRULUK KAYNAĞI YÜKLEYİCİ
-# ─────────────────────────────────────────────────────────────
-
 def load_coaches_json_context(max_chars: int = 14_000) -> str:
     """
     data/coaches_chat.json dosyasını okur ve temiz bir metin bloğuna dönüştürür.
@@ -140,11 +136,6 @@ def load_coaches_json_context(max_chars: int = 14_000) -> str:
         return ""
 
 
-
-# ─────────────────────────────────────────────────────────────
-# PDF DOĞRULUK KAYNAĞI YÜKLEYİCİ
-# ─────────────────────────────────────────────────────────────
-
 def load_pdf_context(max_chars: int = 800_000) -> str:
     """
     data/pdfs/ klasöründeki tüm .pdf dosyalarını okur ve metin bloğu döner.
@@ -192,12 +183,10 @@ def load_pdf_context(max_chars: int = 800_000) -> str:
 
         combined = "\n\n".join(all_texts).strip()
         
-        # ── Ücretsiz API Kotası Koruması ──────────────────────────────
         truncated = False
         if len(combined) > max_chars:
             combined = combined[:max_chars]
             truncated = True
-            # Sadece terminal logu — arayüzü bozma
             print(
                 "\n⚠️  Ücretsiz API sınırı (250K token) nedeniyle "
                 "PDF verisi 800.000 karakterde sınırlandırıldı.\n"
@@ -221,10 +210,6 @@ def load_pdf_context(max_chars: int = 800_000) -> str:
         return ""
 
 
-# ─────────────────────────────────────────────────────────────
-# OTURUM GEÇMİŞİ DEPOSU  (in-memory, uygulama yaşadığı sürece)
-# ─────────────────────────────────────────────────────────────
-
 _session_store: dict[str, InMemoryChatMessageHistory] = {}
 
 
@@ -240,10 +225,6 @@ def clear_session_history(session_id: str) -> None:
     _session_store.pop(session_id, None)
     logger.info("Oturum geçmişi temizlendi: %s", session_id)
 
-
-# ─────────────────────────────────────────────────────────────
-# PROMPT ŞABLONLARI
-# ─────────────────────────────────────────────────────────────
 
 _CONTEXTUALIZE_Q_SYSTEM = (
     "Bir sohbet geçmişi ve kullanıcının son sorusu sana veriliyor. "
@@ -266,7 +247,6 @@ def build_coaching_prompt(coaches_json_context: str, pdf_context: str = "") -> C
     Koçluk JSON bağlamını SystemMessagePromptTemplate e enjekte ederek
     sıfır halüsinasyon garantili ana prompt şablonunu oluşturur.
     """
-    # ── DOĞRULUK KAYNAĞI 1: Koçluk Sohbet Geçmişi (JSON) ──────────
     if coaches_json_context.strip():
         json_block = (
             "\n"
@@ -280,7 +260,6 @@ def build_coaching_prompt(coaches_json_context: str, pdf_context: str = "") -> C
     else:
         json_block = ""
 
-    # ── DOĞRULUK KAYNAĞI 2: YKS Rehberlik Kılavuzları (PDF) ────────
     if pdf_context.strip():
         pdf_block = (
             "\n"
@@ -356,41 +335,29 @@ def build_coaching_prompt(coaches_json_context: str, pdf_context: str = "") -> C
     )
 
 
-# ─────────────────────────────────────────────────────────────
-# ZİNCİR KURULUMU  (lru_cache → bir kez kur, hep kullan)
-# ─────────────────────────────────────────────────────────────
-
 @lru_cache(maxsize=1)
 def build_chain() -> RunnableWithMessageHistory:
     """
     Çift Gemini anahtarlı şelale LLM + JSON doğruluk kaynağı +
     RAG retriever ı tek bir RunnableWithMessageHistory zincirine bağlar.
     """
-    # 1. Doğruluk kaynaklarını yükle (JSON + PDF)
     coaches_context = load_coaches_json_context()
     pdf_ctx = load_pdf_context()
 
-    # 2. LLM (çift anahtarlı şelale)
     llm = create_fallback_llm()
 
-    # 3. Retriever (ChromaDB vektör mağazası)
     retriever = get_retriever()
 
-    # 4. Sıfır halüsinasyon system promptu (JSON bağlamı enjekte edilmiş)
     coaching_prompt = build_coaching_prompt(coaches_context, pdf_ctx)
 
-    # 5. Sohbet bağlamını bağımsız arama sorgusuna dönüştür
     history_aware_retriever = create_history_aware_retriever(
         llm, retriever, contextualize_q_prompt
     )
 
-    # 6. Dokümanları sistemprompt ile birleştir
     doc_chain = create_stuff_documents_chain(llm, coaching_prompt)
 
-    # 7. Retrieval + Generation
     rag_chain = create_retrieval_chain(history_aware_retriever, doc_chain)
 
-    # 8. Oturum geçmişi katmanı
     conversational_chain = RunnableWithMessageHistory(
         rag_chain,
         get_session_history,
@@ -408,18 +375,13 @@ def build_chain() -> RunnableWithMessageHistory:
     return conversational_chain
 
 
-# ─────────────────────────────────────────────────────────────
-# HATA TANIMLARI & YARDIMCILAR
-# ─────────────────────────────────────────────────────────────
-
 _MSG_NO_CONTEXT = (
     "Bu konuda geçmiş koçluk kayıtlarında net bir yönlendirme bulamadım, "
     "hatalı yönlendirme yapmamak adına koçluk grubuna danışmanızı öneririm."
 )
 
-STREAM_RETRY_SENTINEL = "\x00__RETRY__\x00"  # artık kullanılmıyor, geriye uyumluluk için
+STREAM_RETRY_SENTINEL = "\x00__RETRY__\x00"
 
-# ── Fallback: Statik PDF-uyumlu hızlı sorular ──────────────────
 _FALLBACK_PDF_QUESTIONS = [
     "TYT Matematikte önerilen turlama tekniği nedir?",
     "Sınav anı stresi için rehberdeki nefes egzersizi nasıl yapılır?",
@@ -441,13 +403,11 @@ def generate_quick_questions_with_pdf(pdf_context: str) -> list[str]:
       list[str]: 3 adet hızlı soru
     """
     try:
-        # ── Hız ve API güvenliği için PDF'in ilk 50K karakterini kullan
         pdf_excerpt = pdf_context[:50_000] if pdf_context else ""
         if not pdf_excerpt.strip():
             logger.warning("PDF bağlamı boş — fallback sorular kullanılıyor")
             return _FALLBACK_PDF_QUESTIONS
 
-        # ── Prompt: PDF-tabanlı spesifik sorular üret
         prompt_text = (
             "Aşağıdaki YKS/LGS Rehberlik PDF'ini okudun:\n\n"
             f"{pdf_excerpt}\n\n"
@@ -462,8 +422,7 @@ def generate_quick_questions_with_pdf(pdf_context: str) -> list[str]:
             "Her soruyu yeni satıra yaz (hepsi 1 satır olacak).\n"
         )
 
-        # ── LLM ile sorular üret
-        llm = create_fallback_llm(temperature=0.3)  # 0.3 = yaratıcılık & kontrol dengesi
+        llm = create_fallback_llm(temperature=0.3)
         try:
             response = llm.invoke([("human", prompt_text)])
             response_text = response.content.strip()
@@ -471,38 +430,27 @@ def generate_quick_questions_with_pdf(pdf_context: str) -> list[str]:
             logger.warning("LLM çağrısı başarısız: %s — fallback sorular kullanılıyor", llm_err)
             return _FALLBACK_PDF_QUESTIONS
 
-        # ── Sorguları satırlara ayır ve temizle
         lines = [line.strip() for line in response_text.split("\n") if line.strip()]
         
-        # ── Numerik prefix'leri temizle (1., 2., vb.)
         cleaned_qs = []
         for line in lines:
-            # "1. Soru metni" → "Soru metni"
             match = re.match(r"^\d+[\.\)]\s*(.+)$", line)
             if match:
                 cleaned_qs.append(match.group(1))
             elif line and not line.startswith("#"):
                 cleaned_qs.append(line)
         
-        # ── 3 soru garantiyle return et (az varsa fallback'ten tamamla)
         if len(cleaned_qs) >= 3:
             return cleaned_qs[:3]
         elif len(cleaned_qs) > 0:
-            # Kısmi sonuç + fallback
             return cleaned_qs + _FALLBACK_PDF_QUESTIONS[len(cleaned_qs):]
         else:
-            # Tamamen boş yanıt
             logger.warning("LLM boş yanıt döndürdü — fallback sorular kullanılıyor")
             return _FALLBACK_PDF_QUESTIONS
 
     except Exception as exc:
         logger.error("Hızlı sorular üretimi hatası: %s — fallback sorular kullanılıyor", exc)
         return _FALLBACK_PDF_QUESTIONS
-
-
-# ─────────────────────────────────────────────────────────────
-# STREAMING
-# ─────────────────────────────────────────────────────────────
 
 
 def stream_answer(

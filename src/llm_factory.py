@@ -28,10 +28,6 @@ from config import GEMINI_API_KEY_1, GEMINI_API_KEY_2, GEMINI_MODEL_NAME
 logger = logging.getLogger(__name__)
 
 
-# ─────────────────────────────────────────────────────────────
-# TERMINAL LOGLAMA CALLBACK
-# ─────────────────────────────────────────────────────────────
-
 class _GeminiKeyLogger(BaseCallbackHandler):
     """
     Her Gemini key için terminal logu üretir.
@@ -53,10 +49,6 @@ class _GeminiKeyLogger(BaseCallbackHandler):
             print(f"[🔑 GEMINI] ✗  {self._label} hata verdi → {error}")
         logger.warning("[GEMINI] %s hata verdi: %s", self._label, error)
 
-
-# ─────────────────────────────────────────────────────────────
-# ŞELALE ZİNCİRİ KURUCUSU
-# ─────────────────────────────────────────────────────────────
 
 @lru_cache(maxsize=1)
 def create_fallback_llm(temperature: float = 0.1) -> BaseChatModel:
@@ -118,10 +110,6 @@ def create_fallback_llm(temperature: float = 0.1) -> BaseChatModel:
     logger.info("[GEMINI] Şelale zinciri: %s", names_str)
     return chain
 
-
-# ─────────────────────────────────────────────────────────────
-# YARDIMCI  (app.py sidebar için)
-# ─────────────────────────────────────────────────────────────
 
 def create_llm(
     provider: Optional[str] = None,

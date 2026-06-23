@@ -1,19 +1,6 @@
-#!/usr/bin/env python3
 """
-ingest.py — Veri Hazırlama ve Vektörleştirme Scripti
-=====================================================
-Bu script tek seferlik (veya veri güncellendiğinde) çalıştırılır.
 
-İşlem adımları:
-  1. JSON bilgi tabanını yükle ve temizle
-  2. Her Q&A çiftini zengin metadata ile LangChain Document'a dönüştür
-  3. RecursiveCharacterTextSplitter ile chunk'lara böl
-  4. Yerel HuggingFace embedding ile vektörleştir (API maliyeti = 0)
-  5. ChromaDB'ye diske kaydet (her başlatmada yeniden işlenmez)
-
-Kullanım:
-  python ingest.py
-  python ingest.py --reset   # Mevcut vektör mağazasını silip yeniden oluşturur
+Koçluk Chatbot — Veri Ingestion Scripti
 """
 
 import json
@@ -30,7 +17,6 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
 
-# Proje kök dizinini sys.path'e ekle (config.py'ye erişim için)
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from config import (
     DATA_FILE_PATH,
@@ -41,9 +27,7 @@ from config import (
     CHUNK_OVERLAP,
 )
 
-# =============================================================
-# LOGLAMA
-# =============================================================
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s  %(levelname)-8s %(message)s",
@@ -51,7 +35,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Filtre: WhatsApp sistem mesajları ve anlamsız kısa metinler
+
 _NOISE_PATTERNS = [
     "topluluk üzerinden katıldı",
     "gruba hoş geldiniz",
@@ -67,10 +51,6 @@ _NOISE_PATTERNS = [
 ]
 
 
-# =============================================================
-# YARDIMCI FONKSİYONLAR
-# =============================================================
-
 def _is_noise(text: str) -> bool:
     """WhatsApp sistem mesajı veya anlamsız kısa metni tespit eder."""
     if not text or len(text.strip()) < 10:
@@ -83,10 +63,6 @@ def _clean_name(name: str) -> str:
     """Koç isimlerindeki '~' ve boşlukları temizler."""
     return name.lstrip("~").strip() if name else "Bilinmiyor"
 
-
-# =============================================================
-# ADIM 1 — JSON'u Document listesine çevir
-# =============================================================
 
 def load_json_as_documents(file_path: str) -> List[Document]:
     """
@@ -125,12 +101,10 @@ def load_json_as_documents(file_path: str) -> List[Document]:
         asked_by = _clean_name(item.get("asked_by", ""))
         raw_answers = item.get("possible_answers") or []
 
-        # Gürültülü veya anlamsız soruları atla
         if _is_noise(question):
             skipped += 1
             continue
 
-        # Geçerli cevapları filtrele ve birleştir
         valid_answers = []
         for ans in raw_answers:
             answer_text = (ans.get("answer") or "").strip()
@@ -138,7 +112,7 @@ def load_json_as_documents(file_path: str) -> List[Document]:
             if not _is_noise(answer_text):
                 valid_answers.append(f"  • {answered_by}: {answer_text}")
 
-        # Cevapsız kayıtları da dahil et (soruyu soranı bilgi olarak sakla)
+        
         answers_block = (
             "\n".join(valid_answers)
             if valid_answers
@@ -158,7 +132,7 @@ def load_json_as_documents(file_path: str) -> List[Document]:
                 "doc_idx": idx,
                 "category": category,
                 "asked_by": asked_by,
-                # Metadata arama için kısa versiyon (ChromaDB 512 char sınırı)
+            
                 "question_short": question[:300],
                 "answer_count": len(valid_answers),
             },
@@ -172,10 +146,6 @@ def load_json_as_documents(file_path: str) -> List[Document]:
     return documents
 
 
-# =============================================================
-# ADIM 2 — Chunk'lama
-# =============================================================
-
 def split_documents(documents: List[Document]) -> List[Document]:
     """
     Dokümanları semantic olarak anlamlı chunk'lara böler.
@@ -186,7 +156,7 @@ def split_documents(documents: List[Document]) -> List[Document]:
         chunk_size=CHUNK_SIZE,
         chunk_overlap=CHUNK_OVERLAP,
         length_function=len,
-        # Önce başlık bloklarından böl, mecbur kalınca kelimeden
+       
         separators=["\n[", "\n\n", "\n", " ", ""],
     )
 
@@ -197,10 +167,6 @@ def split_documents(documents: List[Document]) -> List[Document]:
     )
     return chunks
 
-
-# =============================================================
-# ADIM 3 — Embed et ve ChromaDB'ye kaydet
-# =============================================================
 
 def build_vector_store(chunks: List[Document], reset: bool = False) -> Chroma:
     """
@@ -265,10 +231,6 @@ def _load_existing_store() -> Chroma:
     )
 
 
-# =============================================================
-# MAIN
-# =============================================================
-
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Koçluk bilgi tabanını vektörleştirir ve ChromaDB'ye kaydeder."
@@ -291,7 +253,7 @@ def main() -> None:
     args = parse_args()
     data_path = args.data
 
-    # Veri dosyası kontrolü
+    
     if not Path(data_path).exists():
         logger.error(f"Veri dosyası bulunamadı: {data_path}")
         logger.error("Lütfen coaching_knowledge_base.json dosyasının proje kökünde olduğundan emin olun.")
@@ -301,17 +263,12 @@ def main() -> None:
     logger.info("  KOÇLUK CHATBOT — VERİ İNGESTION BAŞLIYOR")
     logger.info("=" * 55)
 
-    # Adım 1: Yükle ve temizle
-    documents = load_json_as_documents(data_path)
-
+    
     if not documents:
         logger.error("Hiç geçerli doküman yüklenemedi. JSON formatını kontrol edin.")
         sys.exit(1)
 
-    # Adım 2: Chunk'la
-    chunks = split_documents(documents)
-
-    # Adım 3: Vektörleştir ve kaydet
+    
     build_vector_store(chunks, reset=args.reset)
 
     logger.info("=" * 55)

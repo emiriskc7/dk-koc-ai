@@ -11,7 +11,6 @@ app.py — Streamlit Premium Kullanıcı Arayüzü
   • Hoş geldin ekranı: örnek sorular ile kullanıcıyı yönlendirir
 """
 
-# ─── Diğer TÜM importlardan önce .env'i zorla yükle ──────────
 import os
 from pathlib import Path
 from dotenv import load_dotenv
@@ -24,7 +23,6 @@ if _dot_env.exists():
     load_dotenv(dotenv_path=_dot_env, override=True)
 elif _dot_env_ex.exists():
     load_dotenv(dotenv_path=_dot_env_ex, override=True)
-# ─────────────────────────────────────────────────────────────
 
 import sys
 import uuid
@@ -35,7 +33,6 @@ import traceback
 
 import streamlit as st
 
-# Proje kökünü path'e ekle
 sys.path.insert(0, str(_project_root))
 
 from config import APP_TITLE, APP_DESCRIPTION, MAX_CHAT_HISTORY
@@ -46,9 +43,6 @@ from src.quick_questions import FLAT_LIST as _ALL_QUICK_QUESTIONS, SAMPLE_QUESTI
 
 logging.basicConfig(level=logging.INFO)
 
-# ═════════════════════════════════════════════════════════════
-# 1. SAYFA AYARLARI  (st.set_page_config en üstte olmalı)
-# ═════════════════════════════════════════════════════════════
 
 st.set_page_config(
     page_title="Koçluk Asistanı",
@@ -60,9 +54,6 @@ st.set_page_config(
     },
 )
 
-# ═════════════════════════════════════════════════════════════
-# 2. CUSTOM CSS — Premium Chat Bubble Tasarımı
-# ═════════════════════════════════════════════════════════════
 
 st.markdown(
     """
@@ -223,9 +214,6 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# ═════════════════════════════════════════════════════════════
-# 3. SESSION STATE BAŞLATMA
-# ═════════════════════════════════════════════════════════════
 
 if "session_id" not in st.session_state:
     st.session_state.session_id = str(uuid.uuid4())
@@ -233,15 +221,12 @@ if "session_id" not in st.session_state:
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# Örnek soru butonlarının tetiklediği bekleyen soruyu taşır
 if "pending_question" not in st.session_state:
     st.session_state.pending_question = None
 
-# LLM'in ürettigi dinamik devam soruları (son cevaptan parse edilir)
 if "ai_suggestions" not in st.session_state:
     st.session_state.ai_suggestions = []
 
-# Sidebar hızlı sorular için rastgele tohum
 if "quick_q_seed" not in st.session_state:
     st.session_state.quick_q_seed = random.randint(0, 9999)
 
@@ -256,18 +241,11 @@ if "provider" not in st.session_state:
         st.error(str(exc))
         st.stop()
 
-# ───────────────────────────────────────────────────────────────
-# SHARED UI HELPERS  (– sidebar ve welcome card her ikisi de kullanır)
-# ───────────────────────────────────────────────────────────────
 
 def _set_pending_question(question: str) -> None:
     """on_click callback — seçilen soruyu session_state'e yazar."""
     st.session_state.pending_question = question
 
-
-# ── SIFIR ÇÖKME (ZERO-CRASH) ÖNERİ PARSE YARDIMCILARI ──────────
-# LLM etiket üretmezse, yarım bırakırsa, köşeli parantezi
-# unutursa hiçbir şey çökmez; ana cevap her zaman görünür.
 
 def _safe_parse_suggestions(raw: str) -> list[str]:
     """
@@ -300,17 +278,10 @@ def _safe_clean_text(raw: str) -> str:
         return raw.strip()
 
 
-# _ALL_QUICK_QUESTIONS ve _SAMPLE_QUESTIONS artık src.quick_questions'dan import ediliyor
-
-# ═════════════════════════════════════════════════════════════
-# 4. SIDEBAR
-# ═════════════════════════════════════════════════════════════
-
 with st.sidebar:
     st.markdown("## ⚙️ Ayarlar")
     st.divider()
 
-    # --- Model Bilgisi ---
     _p = st.session_state.provider
     if _p == "gemini":
         provider_label = "🔵 Google Gemini (Şelale)"
@@ -327,7 +298,6 @@ with st.sidebar:
         unsafe_allow_html=True,
     )
 
-    # --- Bilgi Tabanı İstatistikleri ---
     stats = get_vectorstore_stats()
     if stats["status"] == "ok":
         status_icon = "🟢"
@@ -356,29 +326,24 @@ with st.sidebar:
 
     st.divider()
 
-    # --- Sohbeti Temizle ---
     if st.button("🗑️ Sohbeti Temizle", use_container_width=True, type="secondary"):
         st.session_state.messages = []
         clear_session_history(st.session_state.session_id)
-        st.session_state.session_id = str(uuid.uuid4())  # yeni oturum başlat
+        st.session_state.session_id = str(uuid.uuid4())
         st.rerun()
 
-    # --- Sohbet İstatistiği ---
     msg_count = len(st.session_state.messages)
     if msg_count > 0:
         st.caption(f"Bu oturumda {msg_count // 2} soru soruldu.")
 
     st.divider()
 
-    # ─── HIZLI SORULAR (PDF'lerden üretime dayalı + statik fallback) ───────
     st.markdown("### 💡 Hızlı Sorular")
     
-    # ─ PDF verilerini yükle ve PDF-tabanlı sorular üret
     with st.spinner("📚 Sorular hazırlanıyor..."):
         pdf_ctx = load_pdf_context()
         pdf_questions = generate_quick_questions_with_pdf(pdf_ctx) if pdf_ctx else []
     
-    # ─ Gösterilecek sorular: PDF'den varsa onları göster, yoksa statik havuzdan al
     if pdf_questions:
         shown_qs = pdf_questions
         st.caption("📖 Rehberlik verilerine dayanan sorular")
@@ -400,9 +365,6 @@ with st.sidebar:
         st.session_state.quick_q_seed = random.randint(0, 9999)
         st.rerun()
 
-# ═════════════════════════════════════════════════════════════
-# 5. VEKTÖR MAĞAZASI UYARISI  (ingest.py çalıştırılmamışsa)
-# ═════════════════════════════════════════════════════════════
 
 if stats["status"] == "not_found":
     st.markdown(
@@ -419,18 +381,11 @@ if stats["status"] == "not_found":
     )
     st.stop()
 
-# ═════════════════════════════════════════════════════════════
-# 6. ANA BAŞLIK
-# ═════════════════════════════════════════════════════════════
 
 st.title(APP_TITLE)
 st.caption(APP_DESCRIPTION)
 
-# ═════════════════════════════════════════════════════════════
-# 7. HOŞ GELDİN KARTI  (mesaj yokken gösterilir)
-# ═════════════════════════════════════════════════════════════
 
-# Hoş geldin kartını: mesaj YOK ve bekleyen soru da YOK iken göster
 if not st.session_state.messages and not st.session_state.pending_question:
     st.markdown(
         """
@@ -449,8 +404,6 @@ if not st.session_state.messages and not st.session_state.pending_question:
     cols = st.columns(2)
     for i, q in enumerate(_SAMPLE_QUESTIONS):
         with cols[i % 2]:
-            # on_click → callback önce koşar, pending_question set edilir,
-            # sayfa yeniden render edilir, aşağıdaki active_prompt bloğu işler.
             st.button(
                 q,
                 key=f"sample_{i}",
@@ -461,11 +414,7 @@ if not st.session_state.messages and not st.session_state.pending_question:
 
     st.divider()
 
-# ═════════════════════════════════════════════════════════════
-# 8. SOHBET GEÇMİŞİNİ GÖSTER
-# ═════════════════════════════════════════════════════════════
 
-# Bellek yönetimi: aşırı büyümeyi önle
 if len(st.session_state.messages) > MAX_CHAT_HISTORY * 2:
     st.session_state.messages = st.session_state.messages[-(MAX_CHAT_HISTORY * 2):]
 
@@ -473,9 +422,6 @@ for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
-# ═════════════════════════════════════════════════════════════
-# 8b. DİNAMİK DEVAM SORULARI  (LLM'den parse edilen ÖNERİ etiketleri)
-# ═════════════════════════════════════════════════════════════
 
 _DEFAULT_SUGGESTIONS = [
     "Öğrencim geometride sıfırdan başlıyor, ilk 2 haftanın planını nasıl çıkarırım?",
@@ -483,7 +429,6 @@ _DEFAULT_SUGGESTIONS = [
     "Öğrencim burnout yaşıyor, bu kriz anında nasıl bir koçluk seansı yapmalıyım?",
 ]
 
-# Hangi öneriler gösterilecek: LLM ürettiyse onu, yoksa varsayılan
 _active_suggestions: list[str] = (
     st.session_state.ai_suggestions
     if st.session_state.ai_suggestions
@@ -505,29 +450,21 @@ if _active_suggestions:
             args=(_sq,),
         )
 
-# ═════════════════════════════════════════════════════════════
-# 9. KULLANICI GİRDİSİ VE STREAMING YANIT
-# ═════════════════════════════════════════════════════════════
 
-# Aktif prompt kaynağı:
-#   • Buton on_click → pending_question  (bu render'da tüketilir)
-#   • Kılavye    → st.chat_input       (klasik akış)
 active_prompt: str | None = st.session_state.pop("pending_question", None)
 
 if typed := st.chat_input("Hocam, öğrencileriniz için ne sormak istersiniz?"):
-    active_prompt = typed  # klavye girdisi her zaman önceliklidir
+    active_prompt = typed
 
 if active_prompt:
 
-    # Kullanıcı mesajını ekle ve göster
     st.session_state.messages.append({"role": "user", "content": active_prompt})
     with st.chat_message("user"):
         st.markdown(active_prompt)
 
-    # ─ Streaming: token'ları topla, canlı göster, ÖNERİ etiketlerini gizle ─
     with st.chat_message("assistant"):
-        _ph = st.empty()       # dinamik placeholder
-        _raw = ""              # ham çıktı (ÖNERİ etiketleri dahil)
+        _ph = st.empty()
+        _raw = ""
         _suggestions: list[str] = []
         _clean = ""
 
@@ -537,7 +474,6 @@ if active_prompt:
                 session_id=st.session_state.session_id,
                 provider=st.session_state.provider,
             ):
-                # ── Rate-limit retry sinyali: birikmiş _raw'ı sıfırla ──
                 if _chunk == STREAM_RETRY_SENTINEL:
                     _raw = ""
                     _ph.markdown("⏳ *Yeniden bağlanıyor, lütfen bekleyin...*")
@@ -545,7 +481,6 @@ if active_prompt:
 
                 _raw += _chunk
 
-                # ÖNERİ etiketleri cevabın sonuna gelir; canlı gösterimde gizle
                 try:
                     _live = re.sub(r'\[ÖNERİ:.*', '', _raw, flags=re.DOTALL).rstrip()
                 except Exception as _re_exc:
@@ -553,7 +488,6 @@ if active_prompt:
                     _live = _raw
                 _ph.markdown(_live + " ●")
 
-            # ── Stream bitti: ÖNERİ etiketlerini SIFIR ÇÖKME ile parse et ──
             _suggestions = _safe_parse_suggestions(_raw)
             _clean       = _safe_clean_text(_raw)
             _ph.markdown(_clean)
@@ -573,10 +507,8 @@ if active_prompt:
             st.error("🚨 Gemini motorlarında (Key 1 ve Key 2) bir sorun oluştu.")
             st.error(f"🔥 Asıl Hata Sebebi: {str(_stream_exc)}")
             st.code(traceback.format_exc())
-            # KRİTİK: Bu satır olmazsa hemen alttaki st.rerun() hatayı siler!
             st.stop()
 
-    # Temiz yanıtı geçmişe kaydet; ÖNERİ etiketleri kaydedilmez
     st.session_state.messages.append({"role": "assistant", "content": _clean})
     st.session_state.ai_suggestions = [s.strip() for s in _suggestions if s.strip()][:3]
-    st.rerun()  # devam sorularını hemen render et
+    st.rerun()

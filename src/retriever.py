@@ -37,10 +37,6 @@ logger = logging.getLogger(__name__)
 SCORE_THRESHOLD: float = 0.40
 
 
-# ─────────────────────────────────────────────────────────────
-# EMBEDDING & VEKTÖR MAĞAZASI (Tek Örnekli — lru_cache)
-# ─────────────────────────────────────────────────────────────
-
 @lru_cache(maxsize=1)
 def _get_embeddings() -> HuggingFaceEmbeddings:
     """
@@ -85,10 +81,6 @@ def _get_vectorstore() -> Chroma:
     logger.info(f"ChromaDB hazır — {doc_count} vektör yüklendi.")
     return vectorstore
 
-
-# ─────────────────────────────────────────────────────────────
-# PUBLIC API
-# ─────────────────────────────────────────────────────────────
 
 def get_retriever(
     score_threshold: Optional[float] = None,

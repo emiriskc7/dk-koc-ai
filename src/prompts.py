@@ -16,12 +16,6 @@ prompts.py — Prompt Mühendisliği Katmanı
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 
 
-# ─────────────────────────────────────────────────────────────
-# 1. BAĞLAMDAN BAĞIMSIZ SORU ÜRETME PROMPTU
-#    create_history_aware_retriever tarafından kullanılır.
-#    "o kitap", "o yayın" gibi anafora referanslarını çözer.
-# ─────────────────────────────────────────────────────────────
-
 _CONTEXTUALIZE_Q_SYSTEM = (
     "Bir sohbet geçmişi ve kullanıcının son sorusu sana veriliyor. "
     "Soru, sohbet geçmişine atıfta bulunuyor olabilir. "
@@ -39,10 +33,6 @@ contextualize_q_prompt = ChatPromptTemplate.from_messages(
     ]
 )
 
-
-# ─────────────────────────────────────────────────────────────
-# 2. ANA KOÇ / MENTÖR SYSTEM PROMPTU
-# ─────────────────────────────────────────────────────────────
 
 _COACHING_SYSTEM = """
 Sen "Başkoç" — Türkiye'de adını duyurmuş, onlarca derece öğrencisi \
